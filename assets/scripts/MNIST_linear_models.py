@@ -1,4 +1,5 @@
 import torch
+import os
 from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader
@@ -19,6 +20,10 @@ class MNIST_linear(nn.Module):
 
 class trainer():
     def __init__(self):
+        if not os.path.exists("../datasets/"):
+            os.makedirs("../datasets/")
+        if not os.path.exists("../datasets/MNIST_models/"):
+            os.makedirs("../datasets/MNIST_models/")
         self.MNIST_train = datasets.MNIST(
             root="../datasets/",
             train=True,
