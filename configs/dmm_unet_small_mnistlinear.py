@@ -16,15 +16,20 @@ def get_config():
         latent_channels=128,
         num_res_blocks=1,
         latent_channel_multipilers=(1, 2, 2),
-        resolution=(784, 10),
-        attn_resolutions = (392, 5),
+        resolution=(784, 16),
+        attn_resolutions = ((392, 8)),
         dropout=0.1,
         resamp_with_conv=True,
-        var_type="fixedlarge"
+        var_type="fixedlarge",
     )
 
     config.train = d(
-        batch_size=128
+        loss_type='simple',
+        n_epoches=10000,
+        n_iters=5000000,
+        snapshot_freq=5000,
+        validation_frec=2000,
+        batch_size=128,
     )
 
     config.optimizer = d(
@@ -32,6 +37,7 @@ def get_config():
         lr=0.0002,
         weight_decay=0.03,
         betas=(0.99, 0.99),
+        grad_clip=1.0,
     )
 
     config.diffusion = d(

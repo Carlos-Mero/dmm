@@ -64,8 +64,8 @@ class Diffusion(object):
         train_loader = data.DataLoader(
             dataset, batch_size=config.train.batch_size, shuffle=True, num_workers=8)
         model = Unet(config)
-        if self.config.model.ema.enabled:
-            ema_helper = EMAHelper(mu=self.config.model.ema_rate)
+        if self.config.ema.enabled:
+            ema_helper = EMAHelper(mu=self.config.ema.ema_rate)
             ema_helper.register(model)
         else:
             ema_helper = None
@@ -77,8 +77,19 @@ class Diffusion(object):
         # TODO
         # loading weights from previous checkpoints
         # --------------------------------------------------------------------------------------
+        if self.args.resume_training:
+            states = torch.load(os.path.join(self.args.log_path, "ckpt.pth"))
+            model.load_state_dict(states[0])
 
-        for epoch in tqdm(range(start_epoch, self.config.training.n_epochs)):
+            states[1]["param_groups"][0]["eps"] = self.config.optim.eps
+            optimizer.load_state_dict(states[1])
+            start_epoch = states[2]
+            step = states[3]
+            if self.config.ema.enabled:
+                ema_helper.load_state_dict(states[4])
+        # --------------------------------------------------------------------------------------
+
+        for epoch in tqdm(range(start_epoch, self.config.train.n_epochs)):
             data_time = 0
             for i, (x, y) in enumerate(train_loader):
                 n = x.size(0)
@@ -95,7 +106,7 @@ class Diffusion(object):
                     low=0, high=self.num_timesteps, size=(n // 2 + 1,)
                 ).to(self.device)
                 t = torch.cat([t, self.num_timesteps - t - 1], dim=0)[:n]
-                loss = loss_registry[config.model.loss_type](model, x, t, e, b)
+                loss = loss_registry[config.train.loss_type](model, x, t, e, b)
 
                 logging.info(
                     f"step: {step}, loss: {loss.item()}, data time: {data_time / (i+1)}"
@@ -106,13 +117,13 @@ class Diffusion(object):
 
                 try:
                     torch.nn.utils.clip_grad_norm_(
-                        model.parameters(), config.optim.grad_clip
+                        model.parameters(), config.optimizer.grad_clip
                     )
                 except Exception:
                     pass
                 optimizer.step()
 
-                if self.config.model.ema:
+                if self.config.ema.enabled:
                     ema_helper.update(model)
 
                 if step % self.config.training.snapshot_freq == 0 or step == 1:
@@ -122,7 +133,7 @@ class Diffusion(object):
                         epoch,
                         step,
                     ]
-                    if self.config.model.ema:
+                    if self.config.ema.enabled:
                         states.append(ema_helper.state_dict())
 
                     torch.save(

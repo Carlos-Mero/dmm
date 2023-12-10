@@ -1,6 +1,7 @@
 import torch
 from torch import nn
-from helper import *
+import numpy as np
+from libs.helper import *
 
 class Unet(nn.Module):
     def __init__(self, config):
@@ -10,16 +11,20 @@ class Unet(nn.Module):
         in_channels = config.model.in_channels
         out_channels = config.model.out_channels
         ch_mults = config.model.latent_channel_multipilers
-        attn_resolutions = config.model.attn_resolutions
+        attn_resolutions = np.array(config.model.attn_resolutions)
         num_resolutions = len(config.model.latent_channel_multipilers)
         dropout = config.model.dropout
         resamp_with_conv = config.model.resamp_with_conv
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.num_resolutions = num_resolutions
+        self.resolution = np.array(config.model.resolution)
         self.latent_channels = config.model.latent_channels
         self.time_embedding_channels = self.latent_channels * 4
         self.num_res_blocks = config.model.num_res_blocks
         # time step embedding
         self.temb = nn.Module()
-        self.temb_dense = nn.ModuleList([
+        self.temb.dense = nn.ModuleList([
             nn.Linear(self.latent_channels, self.time_embedding_channels),
             nn.Linear(self.time_embedding_channels, self.time_embedding_channels)
         ])
@@ -30,7 +35,7 @@ class Unet(nn.Module):
                                  kernel_size=3,
                                  padding=1,
                                  stride=1)
-        curr_resolution = config.model.resolution
+        curr_res = np.array(config.model.resolution)
         in_ch_mults = (1,) + ch_mults
         self.down = nn.ModuleList()
         block_in = None
@@ -42,15 +47,15 @@ class Unet(nn.Module):
             for i_block in range(self.num_res_blocks):
                 block.append(ResnetBlock(in_channels=block_in,
                                          out_channels=block_out,
-                                         temb_channels=self.temb_ch,
+                                         temb_channels=self.time_embedding_channels,
                                          dropout=dropout))
                 block_in = block_out
-                if curr_resolution in attn_resolutions:
+                if curr_res in attn_resolutions:
                     attn.append(AttnBlock(block_in))
             down = nn.Module()
             down.block = block
             down.attn = attn
-            if i_level != self.num_resolutions-1:
+            if i_level != num_resolutions-1:
                 down.downsample = Downsample(block_in, resamp_with_conv)
                 curr_res = curr_res // 2
             self.down.append(down)
@@ -70,7 +75,7 @@ class Unet(nn.Module):
         # upsampling
         #------------------------------------------------------------------------
         self.up = nn.ModuleList()
-        for i_level in reversed(range(self.num_resolutions)):
+        for i_level in reversed(range(num_resolutions)):
             block = nn.ModuleList()
             attn = nn.ModuleList()
             block_out = self.latent_channels * ch_mults[i_level]
@@ -80,7 +85,7 @@ class Unet(nn.Module):
                     skip_in = self.latent_channels * in_ch_mults[i_level]
                 block.append(ResnetBlock(in_channels=block_in+skip_in,
                                          out_channels=block_out,
-                                         temb_channels=self.temb_ch,
+                                         temb_channels=self.time_embedding_channels,
                                          dropout=dropout))
                 block_in = block_out
                 if curr_res in attn_resolutions:
@@ -102,11 +107,11 @@ class Unet(nn.Module):
                                         padding=1)
 
     def forward(self, x, t):
-        assert x.shape[2] == x.shape[3] == self.resolution
+        assert (x.shape[2:] == self.resolution).all()
 
         # timestep embedding
         #------------------------------------------------------------------------
-        temb = get_timestep_embedding(t, self.ch)
+        temb = get_timestep_embedding(t, self.latent_channels)
         temb = self.temb.dense[0](temb)
         temb = nonlinearity(temb)
         temb = self.temb.dense[1](temb)
