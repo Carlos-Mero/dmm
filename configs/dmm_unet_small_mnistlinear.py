@@ -16,8 +16,8 @@ def get_config():
         latent_channels=128,
         num_res_blocks=1,
         latent_channel_multipilers=(1, 2, 2),
-        resolution=(784, 16),
-        attn_resolutions = ((392, 8)),
+        resolution=(16, 784),
+        attn_resolutions = ((8, 392)),
         dropout=0.1,
         resamp_with_conv=True,
         var_type="fixedlarge",
@@ -49,7 +49,7 @@ def get_config():
 
     config.dataset = d(
         name='mnist-linear',
-        path='assets/datasets/MNIST_models'
+        path='assets/datasets/MNIST_models/'
     )
 
     config.ema = d(
