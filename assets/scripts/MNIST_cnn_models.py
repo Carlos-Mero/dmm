@@ -19,7 +19,7 @@ class MNIST_cnn(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Flatten(),
-            nn.Linear(7*7*8, 64),
+            nn.LazyLinear(64),
             nn.ReLU(),
             nn.Linear(64, 10)
         )
