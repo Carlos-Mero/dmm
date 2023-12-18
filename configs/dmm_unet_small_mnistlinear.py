@@ -9,6 +9,7 @@ def get_config():
     config = ml_collections.ConfigDict()
 
     config.seed = 1145
+    config.log_path = './workdir/dmm_mnistlinear/'
 
     config.model = d(
         in_channels=1,
@@ -49,7 +50,7 @@ def get_config():
 
     config.dataset = d(
         name='mnist-linear',
-        path='assets/datasets/MNIST_models/'
+        path='./assets/datasets/MNIST_models/'
     )
 
     config.ema = d(

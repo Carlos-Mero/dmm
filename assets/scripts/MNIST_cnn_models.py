@@ -12,16 +12,16 @@ class MNIST_cnn(nn.Module):
     def __init__(self):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(1, 4, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(4, 8, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Flatten(),
-            nn.Linear(7*7*64, 128),
+            nn.Linear(7*7*8, 64),
             nn.ReLU(),
-            nn.Linear(128, 10)
+            nn.Linear(64, 10)
         )
     def forward(self, x):
         return self.net(x)

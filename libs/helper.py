@@ -34,7 +34,7 @@ def Normalize(in_channels):
 
 class Upsample(nn.Module):
     def __init__(self, in_channels, with_conv):
-        super().__init__();
+        super().__init__()
         self.with_conv = with_conv
         if self.with_conv:
             self.conv = torch.nn.Conv2d(in_channels=in_channels,
@@ -218,3 +218,7 @@ class EMAHelper(object):
 
     def load_state_dict(self, state_dict):
         self.shadow = state_dict
+
+def count_params(model):
+    params = torch.sum(torch.tensor([p.numel() for p in model.parameters()]))
+    print(f"The model has {params} parameters in total.")

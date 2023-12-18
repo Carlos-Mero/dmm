@@ -3,7 +3,6 @@ import logging
 import numpy as np
 import torch
 from torch import optim
-from torch.utils import data
 from tqdm import tqdm
 
 from unet import Unet
@@ -29,8 +28,7 @@ def get_optimizer(config, parameters):
             'Optimizer {} not understood.'.format(config.optim.optimizer))
 
 class Diffusion(object):
-    def __init__(self, args, config):
-        self.args = args
+    def __init__(self, config):
         self.config = config
         self.accelerator = Accelerator()
         self.device = self.accelerator.device
@@ -59,10 +57,8 @@ class Diffusion(object):
             self.logvar = posterior_variance.clamp(min=1e-20).log()
 
     def train(self):
-        args, config = self.args, self.config
-        dataset, test_dataset = get_dataset(args, config)
-        train_loader = data.DataLoader(
-            dataset, batch_size=config.train.batch_size, shuffle=True, num_workers=8)
+        config = self.config
+        train_loader, test_loader = get_dataset(config) # Currently we won't use test_loader
         model = Unet(config)
         if self.config.ema.enabled:
             ema_helper = EMAHelper(mu=self.config.ema.ema_rate)
@@ -77,16 +73,6 @@ class Diffusion(object):
         # TODO
         # loading weights from previous checkpoints
         # --------------------------------------------------------------------------------------
-        if self.args.resume_training:
-            states = torch.load(os.path.join(self.args.log_path, "ckpt.pth"))
-            model.load_state_dict(states[0])
-
-            states[1]["param_groups"][0]["eps"] = self.config.optim.eps
-            optimizer.load_state_dict(states[1])
-            start_epoch = states[2]
-            step = states[3]
-            if self.config.ema.enabled:
-                ema_helper.load_state_dict(states[4])
         # --------------------------------------------------------------------------------------
 
         for epoch in tqdm(range(start_epoch, self.config.train.n_epochs)):
@@ -138,9 +124,9 @@ class Diffusion(object):
 
                     torch.save(
                         states,
-                        os.path.join(self.args.log_path, "ckpt_{}.pth".format(step)),
+                        os.path.join(self.config.log_path, "ckpt_{}.pth".format(step)),
                     )
-                    torch.save(states, os.path.join(self.args.log_path, "ckpt.pth"))
+                    torch.save(states, os.path.join(self.config.log_path, "ckpt.pth"))
 
     def sample(self):
         # --------------------------------------------------------------------------------------

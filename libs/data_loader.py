@@ -31,8 +31,6 @@ def get_dataset(args, config):
             pad_amount = config.model.resolution[0] - data.shape[-2]
             pad_dims = (0, 0, 0, pad_amount)
             tensors.append(F.pad(data, pad_dims, value=0))
-        print(tensors)
-        print(len(tensors))
         data_loader = DataLoader(param_set(tensors), batch_size=config.train.batch_size, shuffle=True)
         return data_loader, None # We will not return a test set here.
     else:
