@@ -92,7 +92,7 @@ class trainer():
         #return (tloss, tcorrect)
 
     def generate_model_data(self):
-        while self.model_count < 1024:
+        while self.model_count < 2048:
             self.train()
 
 if __name__ == "__main__":

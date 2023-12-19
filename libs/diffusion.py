@@ -78,7 +78,7 @@ class Diffusion(object):
 
         for epoch in tqdm(range(start_epoch, self.config.train.n_epoches)):
             data_time = 0
-            for i, (x, y) in enumerate(train_loader):
+            for i, x in enumerate(train_loader):
                 n = x.size(0)
                 model.train()
                 step += 1

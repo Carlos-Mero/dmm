@@ -30,7 +30,9 @@ def get_dataset(config):
             data = collect_single_file(model, path)
             pad_amount = config.model.resolution[0] - data.shape[-2]
             pad_dims = (0, 0, 0, pad_amount)
-            tensors.append(F.pad(data, pad_dims, value=0))
+            data = F.pad(data, pad_dims, value=0)
+            data = data.view(1, config.model.resolution[0], config.model.resolution[1])
+            tensors.append(data)
         data_loader = DataLoader(param_set(tensors), batch_size=config.train.batch_size, shuffle=True)
         return data_loader, None # We will not return a test set here.
     else:
