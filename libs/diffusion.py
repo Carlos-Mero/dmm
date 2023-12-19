@@ -5,11 +5,11 @@ import torch
 from torch import optim
 from tqdm import tqdm
 
-from unet import Unet
-from helper import EMAHelper
+from libs.unet import Unet
+from libs.helper import EMAHelper, count_params
 from accelerate import Accelerator
-from data_loader import get_dataset
-from losses import loss_registry
+from libs.data_loader import get_dataset
+from libs.losses import loss_registry
 
 def get_beta_schedule(beta_schedule_type, *, beta_start, beta_end, num_diffusion_timesteps):
     if beta_schedule_type == 'linear':
@@ -21,7 +21,7 @@ def get_beta_schedule(beta_schedule_type, *, beta_start, beta_end, num_diffusion
     return betas
 
 def get_optimizer(config, parameters):
-    if config.optim.optimizer == 'adamw':
+    if config.optimizer_name == 'adamw':
         return optim.AdamW(parameters, **config.optimizer)
     else:
         raise NotImplementedError(
@@ -33,7 +33,7 @@ class Diffusion(object):
         self.accelerator = Accelerator()
         self.device = self.accelerator.device
         betas = get_beta_schedule(
-            beta_schedule=config.diffusion.beta_schedule,
+            beta_schedule_type=config.diffusion.beta_schedule,
             beta_start=config.diffusion.beta_start,
             beta_end=config.diffusion.beta_end,
             num_diffusion_timesteps=config.diffusion.num_diffusion_timesteps,
@@ -60,6 +60,7 @@ class Diffusion(object):
         config = self.config
         train_loader, test_loader = get_dataset(config) # Currently we won't use test_loader
         model = Unet(config)
+        count_params(model)
         if self.config.ema.enabled:
             ema_helper = EMAHelper(mu=self.config.ema.ema_rate)
             ema_helper.register(model)
@@ -75,7 +76,7 @@ class Diffusion(object):
         # --------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------
 
-        for epoch in tqdm(range(start_epoch, self.config.train.n_epochs)):
+        for epoch in tqdm(range(start_epoch, self.config.train.n_epoches)):
             data_time = 0
             for i, (x, y) in enumerate(train_loader):
                 n = x.size(0)
@@ -112,7 +113,7 @@ class Diffusion(object):
                 if self.config.ema.enabled:
                     ema_helper.update(model)
 
-                if step % self.config.training.snapshot_freq == 0 or step == 1:
+                if step % self.config.train.snapshot_freq == 0 or step == 1:
                     states = [
                         model.state_dict(),
                         optimizer.state_dict(),

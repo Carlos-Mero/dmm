@@ -33,12 +33,11 @@ def get_config():
         batch_size=128,
     )
 
+    config.optimizer_name = 'adamw'
     config.optimizer = d(
-        name='adamw',
         lr=0.0002,
         weight_decay=0.03,
         betas=(0.99, 0.99),
-        grad_clip=1.0,
     )
 
     config.diffusion = d(

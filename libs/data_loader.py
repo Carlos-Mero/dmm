@@ -19,7 +19,7 @@ def collect_single_file(model, state_path):
     for name, parameters in parameters.items():
         return parameters.data
 
-def get_dataset(args, config):
+def get_dataset(config):
     # Not Completely Implemented Yet!!
     if config.dataset.name == 'mnist-linear':
         from assets.scripts.MNIST_linear_models import MNIST_linear
