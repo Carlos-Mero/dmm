@@ -129,12 +129,51 @@ class Diffusion(object):
                     )
                     torch.save(states, os.path.join(self.config.log_path, "ckpt.pth"))
 
-    def sample(self):
-        # --------------------------------------------------------------------------------------
-        # TODO
-        # generating sample models
-        # --------------------------------------------------------------------------------------
-        raise NotImplementedError('Diffusion.sample')
+    def sample(self, nnet_path, sample_init=None, only_last=True):
+        if nnet_path is None:
+            raise EnvironmentError('Need to specfy the path to the pretrained model weight.')
+        config = self.config
+        model = Unet(config)
+        model.load_state_dict(nnet_path)
+        model = self.accelerator.prepare(model)
+        model.eval()
+        seq = torch.linspace(0, config.diffusion.num_diffusion_timesteps, config.sample.time_steps)
+        x = torch.randn(
+            config.sample.n_samples,
+            config.model.in_channels,
+            config.model.resolution,
+            device=self.device
+        ) if sample_init is None else sample_init
+        from libs.helper import ddim_steps
+        xs = ddim_steps(x, seq, model, self.betas, config.sample.eta)
+        x = xs
+        if only_last:
+            x = x[0][-1]
+        return x
+
+    def visualize(self, nnet_path, sample_init):
+        config = self.config
+        xs = self.sample(nnet_path=nnet_path, sample_init=sample_init, only_last=False)
+        xs = xs[0]
+        steps = xs.shape[0]
+        if config.name == 'dmm_mnistlinear':
+            from libs.preview_parameters import preview_parameters as view
+            from assets.scripts.MNIST_linear_models import MNIST_linear as Model
+            from libs.eval import MNIST_tester
+            model = Model()
+            model.net.weight.data = xs[0]
+            view(model, config.log_path, "init")
+            model.net.weight.data = xs[steps // 2]
+            view(model, config.log_path, "mid")
+            model.net.weight.data = xs[-1]
+            view(model, config.log_path, "end")
+            tester = MNIST_tester()
+            for i in range(steps):
+                model.net.weight.data = xs[i]
+                tester.test(model)
+            tester.draw_curves()
+        else:
+            raise NotImplementedError()
 
     def test(self):
         raise NotImplementedError('Diffusion.test')

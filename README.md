@@ -9,7 +9,7 @@ The model structure and algorithms are mainly inspired by [DDIM](https://github.
 To reproduce the training process of DMM, we should install these dependencies first by typing these commands:
 
 ```shell
-pip install torch torchvision accelerate ml_collections einops tqdm
+pip install torch torchvision accelerate ml_collections einops tqdm matplotlib
 ```
 
 ### Training
@@ -23,7 +23,7 @@ cd assets/scripts
 python3 MNIST_linear_models.py
 ```
 
-By doing this, the python script would automatically download the MNIST dataset and generate 2048 different linear models for the classification of MNIST dataset, and save their weights to a predifined path.
+By doing this, the python script would automatically download the MNIST dataset and generate 2048 different linear models for the classification of MNIST dataset, and save their weights to a predefined path.
 We can also modify the parameters in these scripts if we want to obtain more data for training.
 After that we can go back to the root folder and start training our diffusion models.
 

@@ -8,6 +8,7 @@ def d(**kwargs):
 def get_config():
     config = ml_collections.ConfigDict()
 
+    config.name = 'dmm_mnistlinear'
     config.seed = 1145
     config.log_path = './workdir/dmm_mnistlinear/'
 
@@ -31,6 +32,11 @@ def get_config():
         snapshot_freq=5000,
         validation_frec=2000,
         batch_size=32,
+    )
+    config.sample = d(
+        n_samples=1,
+        time_steps=50,
+        eta=0,
     )
 
     config.optimizer_name = 'adamw'
