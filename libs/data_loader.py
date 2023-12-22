@@ -14,7 +14,7 @@ class param_set(Dataset):
 
 def collect_single_file(model, state_path):
     # There's Many Things Left to DO!!
-    model.load_state_dict(torch.load(state_path))
+    model.load_state_dict(torch.load(state_path, map_location=torch.device("cpu")))
     parameters = model.state_dict()
     for name, parameters in parameters.items():
         return parameters.data

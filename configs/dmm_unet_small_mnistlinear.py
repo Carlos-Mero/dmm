@@ -30,7 +30,7 @@ def get_config():
         n_iters=5000000,
         snapshot_freq=5000,
         validation_frec=2000,
-        batch_size=128,
+        batch_size=32,
     )
 
     config.optimizer_name = 'adamw'
