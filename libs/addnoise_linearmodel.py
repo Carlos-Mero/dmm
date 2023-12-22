@@ -23,7 +23,7 @@ class MNIST_linear(nn.Module):
         nn.init.normal_(self.net.weight)
 
 class test_with_noise():
-    def __init__(self, noise, model):
+    def __init__(self, noise, model, outputfile):
         self.MNIST_test = datasets.MNIST(
             root="../datasets/",
             train=False,
@@ -37,6 +37,7 @@ class test_with_noise():
         self.test_loader = self.accelerator.prepare(self.test_loader)
         self.model_count = 0
         self.noise = noise
+        self.outputfile = outputfile
         self.model = model.to(self.device)
 
     def preview_parameters(self):
@@ -55,7 +56,9 @@ class test_with_noise():
                 plt.imshow(weights, cmap=cmap, norm=norm, aspect=k)
                 plt.colorbar()
                 plt.title(f'Visualization with Noise: {self.noise}')
-                plt.show()
+                save_path = os.path.join(self.outputfile, f'weights_with_noise_{noise:.4f}.png')
+                plt.savefig(save_path)
+                plt.close()
 
     def test(self):
         size = len(self.MNIST_test)
@@ -64,7 +67,7 @@ class test_with_noise():
         tloss, tcorrect = 0.0, 0.0
 
         for param in self.model.parameters():
-            param.data += torch.randn_like(param.data) * self.noise
+            param.data = param.data*np.sqrt(1-self.noise) + torch.randn_like(param.data) * self.noise
                     
         with torch.no_grad():
             for X, y in self.test_loader:
@@ -84,23 +87,28 @@ class test_with_noise():
 # Load the model
 model = MNIST_linear()
 
-path = ../datasets/MNIST_models/0.pt  
+path = '../datasets/MNIST_models/10.pt'
 model.load_state_dict(torch.load(path).state_dict())
 
 noise = 0
-test_with_noise = test_with_noise(noise, model)
+if not os.path.exists("../outputfile"):
+    os.makedirs("../outputfile")
+outputfile = '../outputfile'
+test_with_noise = test_with_noise(noise, model, outputfile)
+
 noise_values = []
 loss_values = []
 acc_values = []
+steps = []
 
 #set num_diffusion_timesteps
-n=20
+n = 1000
 
 config = {
     'diffusion': {
         'noise_schedule_type': 'linear',
-        'noise_start': 0.0001,
-        'noise_end': 0.02,
+        'noise_start': 0.02,
+        'noise_end': 0.0001,
         'num_diffusion_timesteps': n
     }
 }
@@ -118,29 +126,31 @@ noise_schedule = get_noise_schedule(**config['diffusion'])
 
 #add noise
 for i in range(n):
-    noise += noise_schedule[i]
+    noise = noise_schedule[i]
     print(f"Current Noise: {noise}")
     test_with_noise.noise = noise
     loss, acc = test_with_noise.test()
+    steps.append(i)
     noise_values.append(noise)
     loss_values.append(loss)
     acc_values.append(acc)
 
 
 # Plot loss and accuracy
-plt.figure(figsize=(12, 4))
-plt.subplot(1, 2, 1)
-plt.plot(noise_values, loss_values, marker='o')
-plt.xlabel('Noise')
+plt.plot(steps, loss_values, marker='o')
+plt.xlabel('step')
 plt.ylabel('Test Loss')
 plt.title('Test Loss with Noise')
+save_path = os.path.join(outputfile, 'loss_curve.png')
+plt.savefig(save_path)
+plt.close()
 
-plt.subplot(1, 2, 2)
-plt.plot(noise_values, acc_values, marker='o', color='r')
-plt.xlabel('Noise')
+plt.plot(steps, acc_values, marker='o', color='r')
+plt.xlabel('step')
 plt.ylabel('Test Accuracy (%)')
 plt.title('Test Accuracy with Noise')
 
-plt.tight_layout()
-plt.show()
+save_path = os.path.join(outputfile, 'accuracy_curve.png')
+plt.savefig(save_path)
+plt.close()
 
