@@ -32,7 +32,7 @@ def main():
     diffuser = Diffusion(config)
 
     if args.visualize:
-        diffuser.visualize()
+        diffuser.visualize(args.nnet_path, sample_init=None)
     elif args.sample:
         diffuser.sample(args.nnet_path, only_last=False)
     elif args.train:

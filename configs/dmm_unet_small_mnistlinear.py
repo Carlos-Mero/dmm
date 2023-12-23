@@ -35,7 +35,7 @@ def get_config():
     )
     config.sample = d(
         n_samples=1,
-        time_steps=50,
+        time_steps=100,
         eta=0,
     )
 

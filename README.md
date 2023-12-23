@@ -1,5 +1,7 @@
 # DMM
 
+> This repository is still working in progress.
+
 An attempt to use Diffusion Models to predict the parameters of other models.
 
 The model structure and algorithms are mainly inspired by [DDIM](https://github.com/ermongroup/ddim) and [U-ViT](https://github.com/baofff/U-ViT).
@@ -31,4 +33,14 @@ Here we listed the commands used in our training process:
 
 ```shell
 accelerate launch --multi_gpu --num_processes 4 main.py --config mnist-linear --train # used for linear models on MNIST dataset
+```
+
+### Evaluation
+
+The evaluation metrics of such model is directly derived from the target model.
+Or in other words, we will use the loss and evaluation metrics to evaluate the performance or quality of the generated model.
+We can use these commands to reproduce the results of our works:
+
+```shell
+python3 main.py --config mnist-linear --visualize --nnet_path ./workdir/dmm_mnistlinear/ckpt.pth # used for linear models on MNIST dataset
 ```

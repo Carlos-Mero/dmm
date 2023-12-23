@@ -228,7 +228,6 @@ def compute_alpha(beta, t):
     a = (1 - beta).cumprod(dim=0).index_select(0, t + 1).view(-1, 1, 1, 1)
     return a
 
-
 def ddim_steps(x, seq, model, b, **kwargs):
     with torch.no_grad():
         n = x.size(0)
@@ -240,7 +239,7 @@ def ddim_steps(x, seq, model, b, **kwargs):
             next_t = (torch.ones(n) * j).to(x.device)
             at = compute_alpha(b, t.long())
             at_next = compute_alpha(b, next_t.long())
-            xt = xs[-1].to('cuda')
+            xt = xs[-1].to(x.device)
             et = model(xt, t)
             x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
             x0_preds.append(x0_t.to('cpu'))

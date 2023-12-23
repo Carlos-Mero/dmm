@@ -134,18 +134,25 @@ class Diffusion(object):
             raise EnvironmentError('Need to specfy the path to the pretrained model weight.')
         config = self.config
         model = Unet(config)
-        model.load_state_dict(nnet_path)
+        ckpt = torch.load(nnet_path, map_location=self.device)
+        ori_state_dict = ckpt[0]
+        state_dict = {}
+        for key, value in ori_state_dict.items():
+            key = key[7:]
+            state_dict[key] = value
+        model.load_state_dict(state_dict)
         model = self.accelerator.prepare(model)
         model.eval()
-        seq = torch.linspace(0, config.diffusion.num_diffusion_timesteps, config.sample.time_steps)
-        x = torch.randn(
+        seq = torch.linspace(0, config.diffusion.num_diffusion_timesteps - 1, config.sample.time_steps)
+        seq = [int(s) for s in list(seq)]
+        x = (torch.randn(
             config.sample.n_samples,
             config.model.in_channels,
-            config.model.resolution,
+            *config.model.resolution,
             device=self.device
-        ) if sample_init is None else sample_init
+        ) ) if sample_init is None else sample_init
         from libs.helper import ddim_steps
-        xs = ddim_steps(x, seq, model, self.betas, config.sample.eta)
+        xs = ddim_steps(x, seq, model, self.betas, eta=config.sample.eta)
         x = xs
         if only_last:
             x = x[0][-1]
@@ -155,21 +162,23 @@ class Diffusion(object):
         config = self.config
         xs = self.sample(nnet_path=nnet_path, sample_init=sample_init, only_last=False)
         xs = xs[0]
-        steps = xs.shape[0]
+        steps = len(xs)
         if config.name == 'dmm_mnistlinear':
             from libs.preview_parameters import preview_parameters as view
             from assets.scripts.MNIST_linear_models import MNIST_linear as Model
             from libs.eval import MNIST_tester
             model = Model()
-            model.net.weight.data = xs[0]
+            for i in range(steps):
+                xs[i] = xs[i].view(1, 16, 784)
+            model.net.weight.data = xs[0][:, :10, :]
             view(model, config.log_path, "init")
-            model.net.weight.data = xs[steps // 2]
+            model.net.weight.data = xs[3 * steps // 4][:, :10, :]
             view(model, config.log_path, "mid")
-            model.net.weight.data = xs[-1]
+            model.net.weight.data = xs[-1][:, :10, :]
             view(model, config.log_path, "end")
             tester = MNIST_tester()
             for i in range(steps):
-                model.net.weight.data = xs[i]
+                model.net.weight.data = xs[i][0, :10, :]
                 tester.test(model)
             tester.draw_curves()
         else:
