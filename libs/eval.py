@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch import optim
 from torchvision import datasets
 from torchvision import transforms
 from torch.utils.data import DataLoader
@@ -29,6 +30,19 @@ class MNIST_tester(object):
         self.loss_fn = nn.CrossEntropyLoss()
         self.losses = []
         self.accs = []
+
+    def guide(self, model):
+        optimizer = optim.SGD(model.parameters(), lr=0.2)       
+        for (X, y) in self.train_loader:
+            X = X.to(self.device)
+            y = y.to(self.device)
+            model = model.to(self.device)
+            pred = model(X)
+            loss = self.loss_fn(pred, y)
+            self.accelerator.backward(loss)
+            optimizer.step()
+            optimizer.zero_grad()
+            break
 
     def test(self, model):
         size = len(self.MNIST_test)

@@ -2,6 +2,7 @@ import os
 import logging
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch import optim
 from tqdm import tqdm
 
@@ -160,14 +161,24 @@ class Diffusion(object):
 
     def visualize(self, nnet_path, sample_init):
         config = self.config
-        xs = self.sample(nnet_path=nnet_path, sample_init=sample_init, only_last=False)
-        xs = xs[0]
-        steps = len(xs)
         if config.name == 'dmm_mnistlinear':
             from libs.preview_parameters import preview_parameters as view
             from assets.scripts.MNIST_linear_models import MNIST_linear as Model
             from libs.eval import MNIST_tester
             model = Model()
+            tester = MNIST_tester()
+            tester.guide(model)
+            init = model.net.weight.data
+            pad_amount = config.model.resolution[0] - init.shape[-2]
+            pad_dims = (0, 0, 0, pad_amount)
+            init = F.pad(init, pad_dims, value=0)
+            init = init.view(1, 1, config.model.resolution[0], config.model.resolution[1])
+        else:
+            raise NotImplementedError()
+        xs = self.sample(nnet_path=nnet_path, sample_init=None, only_last=False)
+        xs = xs[0]
+        steps = len(xs)
+        if config.name == 'dmm_mnistlinear':
             for i in range(steps):
                 xs[i] = xs[i].view(1, 16, 784)
             model.net.weight.data = xs[0][:, :10, :]
@@ -176,7 +187,6 @@ class Diffusion(object):
             view(model, config.log_path, "mid")
             model.net.weight.data = xs[-1][:, :10, :]
             view(model, config.log_path, "end")
-            tester = MNIST_tester()
             for i in range(steps):
                 model.net.weight.data = xs[i][0, :10, :]
                 tester.test(model)

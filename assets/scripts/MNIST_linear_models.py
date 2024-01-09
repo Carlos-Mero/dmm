@@ -61,6 +61,7 @@ class trainer():
         torch.save(self.model.state_dict(), f"../datasets/MNIST_models/{self.model_count}.pt")
         print(f"Finished training model [{self.model_count}/1024]")
         self.model_count += 1
+
     def test(self):
         size = len(self.MNIST_test)
         num_batches = len(self.test_loader)
